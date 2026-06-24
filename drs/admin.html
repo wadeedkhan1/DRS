@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRS Admin Monitoring Console</title>
+    <!-- Modern Premium Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(20, 28, 47, 0.6);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent-color: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.4);
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(30, 41, 59, 0.5) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(15, 23, 42, 0.8) 0px, transparent 50%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Glassmorphism Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 2rem;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 10px;
+            height: 10px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            box-shadow: 0 0 12px 3px var(--accent-glow);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.4);
+                opacity: 0.6;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, #fff 30%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--error-color);
+        }
+
+        .status-dot.connected {
+            background-color: var(--success-color);
+            box-shadow: 0 0 8px var(--success-color);
+        }
+
+        /* 3-Column Layout Grid */
+        .container {
+            display: grid;
+            grid-template-columns: 300px 1fr 320px;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            flex-grow: 1;
+            max-width: 1800px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Hosts Panel */
+        .hosts-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .hosts-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-height: 70vh;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        /* Custom Scrollbar for Previews */
+        .hosts-grid::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .hosts-grid::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .hosts-grid::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .hosts-grid::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .host-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .host-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .host-card.active {
+            background: rgba(59, 130, 246, 0.06);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 16px rgba(59, 130, 246, 0.2);
+        }
+
+        .host-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .host-card-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 170px;
+        }
+
+        .host-card-status {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+        }
+
+        .host-card.active .host-card-status {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+
+        .host-card-preview {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .host-card-preview canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .no-hosts-message {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 2rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        /* Screen Viewer Card */
+        .viewer-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 8px 32px var(--shadow-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            min-height: 450px;
+        }
+
+        .viewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--card-border);
+            background: rgba(15, 23, 42, 0.3);
+        }
+
+        .viewer-title {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .viewer-title span.active-id {
+            color: var(--text-primary);
+            font-family: monospace;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--card-border);
+        }
+
+        .viewer-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-control {
+            background: rgba(239, 68, 110, 0.15);
+            border-color: rgba(239, 68, 110, 0.3);
+            color: #f87171;
+        }
+
+        .btn-control.active {
+            background: rgba(239, 68, 110, 0.8);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(239, 68, 110, 0.4);
+            animation: control-pulse 2s infinite;
+        }
+
+        @keyframes control-pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 4px 16px rgba(239, 68, 110, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 4px 24px rgba(239, 68, 110, 0.7);
+            }
+        }
+
+        .control-indicator {
+            display: none;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #f87171;
+            padding: 0.3rem 0.7rem;
+            border-radius: 6px;
+            background: rgba(239, 68, 110, 0.1);
+            border: 1px solid rgba(239, 68, 110, 0.2);
+        }
+
+        .control-indicator.visible {
+            display: flex;
+        }
+
+        .control-indicator .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ef4444;
+            animation: pulse 1s infinite;
+        }
+
+        #remote-canvas {
+            max-width: 100%;
+            max-height: 70vh;
+            border-radius: 6px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+            cursor: default;
+            display: none;
+        }
+
+        #remote-canvas.controlling {
+            cursor: default;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            border-color: transparent;
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            box-shadow: 0 6px 16px var(--accent-glow);
+        }
+
+        .screen-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            background: #000;
+            position: relative;
+        }
+
+        .placeholder-message {
+            position: absolute;
+            text-align: center;
+            color: var(--text-secondary);
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .placeholder-message svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1rem;
+            color: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Sidebar / Statistics Panel */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .panel-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.25rem;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 8px 32px var(--shadow-color);
+        }
+
+        .panel-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 10px;
+            padding: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-box.highlight {
+            border-color: rgba(59, 130, 246, 0.2);
+            background: rgba(59, 130, 246, 0.03);
+        }
+
+        .stat-box.highlight .stat-value {
+            color: #60a5fa;
+        }
+
+        .logs-panel {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 200px;
+        }
+
+        .logs-content {
+            flex-grow: 1;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #34d399;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            overflow-y: auto;
+            max-height: 250px;
+        }
+
+        .log-entry {
+            margin-bottom: 0.25rem;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo-section">
+            <div class="logo-icon"></div>
+            <h1>DRS Monitoring Console</h1>
+        </div>
+        <div class="status-badge">
+            <div id="status-dot" class="status-dot"></div>
+            <span id="status-text">Disconnected</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Left: Hosts Panel -->
+        <aside class="hosts-panel">
+            <div class="panel-card" style="height: 100%; display: flex; flex-direction: column;">
+                <h3 class="panel-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    Active Clients (<span id="hosts-count">0</span>)
+                </h3>
+                <div class="hosts-grid" id="hosts-grid">
+                    <div class="no-hosts-message" id="no-hosts-message">
+                        No host clients connected.
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Middle: Main Screen Sharing Viewer -->
+        <main class="viewer-card">
+            <div class="viewer-header">
+                <span class="viewer-title">
+                    Live Stream: <span class="active-id" id="active-host-display">None Selected</span>
+                </span>
+                <div class="viewer-controls">
+                    <div class="control-indicator" id="control-indicator">
+                        <div class="dot"></div>
+                        <span>CONTROLLING</span>
+                    </div>
+                    <button class="btn btn-control" id="btn-control">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"></path>
+                            <path d="M12 8v8M8 12h8"></path>
+                        </svg>
+                        <span>Remote Control</span>
+                    </button>
+                    <button class="btn" id="btn-pause">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="6" y="4" width="4" height="16"></rect>
+                            <rect x="14" y="4" width="4" height="16"></rect>
+                        </svg>
+                        <span>Pause</span>
+                    </button>
+                    <button class="btn" id="btn-fullscreen">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path
+                                d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
+                            </path>
+                        </svg>
+                        <span>Fullscreen</span>
+                    </button>
+                    <button class="btn btn-primary" id="btn-screenshot">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path>
+                        </svg>
+                        <span>Download</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="screen-container" id="screen-container">
+                <div class="placeholder-message" id="placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    <p id="placeholder-text">Select a client from the left panel to begin monitoring.</p>
+                </div>
+                <canvas id="remote-canvas"></canvas>
+            </div>
+        </main>
+
+        <!-- Right: Sidebar Diagnostics/Stats -->
+        <aside class="sidebar">
+            <div class="panel-card">
+                <h3 class="panel-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                    Performance Metrics
+                </h3>
+                <div class="stat-grid">
+                    <div class="stat-box highlight">
+                        <span class="stat-label">Frame Rate</span>
+                        <span class="stat-value" id="stat-fps">0.0 FPS</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Bandwidth Usage</span>
+                        <span class="stat-value" id="stat-bandwidth">0.00 KB/s</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Average Frame Size</span>
+                        <span class="stat-value" id="stat-size">0.0 KB</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Total Frames Received</span>
+                        <span class="stat-value" id="stat-count">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-card logs-panel">
+                <h3 class="panel-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    Activity Log
+                </h3>
+                <div class="logs-content" id="logs-content">
+                    <div class="log-entry">[Console Initialize] Ready.</div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const canvas = document.getElementById('remote-canvas');
+        const ctx = canvas.getContext('2d');
+        const placeholder = document.getElementById('placeholder');
+        const placeholderText = document.getElementById('placeholder-text');
+        const logsContent = document.getElementById('logs-content');
+        const hostsGrid = document.getElementById('hosts-grid');
+        const noHostsMessage = document.getElementById('no-hosts-message');
+        const activeHostDisplay = document.getElementById('active-host-display');
+
+        // Buttons
+        const btnControl = document.getElementById('btn-control');
+        const btnPause = document.getElementById('btn-pause');
+        const btnFullscreen = document.getElementById('btn-fullscreen');
+        const btnScreenshot = document.getElementById('btn-screenshot');
+        const controlIndicator = document.getElementById('control-indicator');
+
+        // Statistics Variables
+        const statFps = document.getElementById('stat-fps');
+        const statBandwidth = document.getElementById('stat-bandwidth');
+        const statSize = document.getElementById('stat-size');
+        const statCount = document.getElementById('stat-count');
+
+        let totalFrames = 0;
+        let totalBytes = 0;
+        let lastTime = performance.now();
+        let bytesThisSecond = 0;
+        let framesThisSecond = 0;
+        let paused = false;
+        let controlling = false;
+
+        // Remote host tracking
+        let activeHostId = null;
+        const hostsData = new Map(); // host_id -> { width, height }
+
+        // Default screen dimensions (scaled if screen_info message comes)
+        let screenWidth = 1920;
+        let screenHeight = 1080;
+
+        function log(message) {
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${time}] ${message}`;
+            logsContent.appendChild(entry);
+            logsContent.scrollTop = logsContent.scrollHeight;
+        }
+
+        // Connect to WebSocket Server
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsHost = window.location.host || 'localhost:8080';
+        const wsUrl = `${wsProtocol}//${wsHost}/ws?role=admin`;
+
+        log(`Connecting to server: ${wsUrl}`);
+        const socket = new WebSocket(wsUrl);
+        socket.binaryType = 'arraybuffer'; // We parse byte headers
+
+        socket.onopen = () => {
+            statusDot.classList.add('connected');
+            statusText.textContent = 'Connected (Admin)';
+            log('WebSocket connection established.');
+        };
+
+        socket.onclose = (event) => {
+            statusDot.classList.remove('connected');
+            statusText.textContent = 'Disconnected';
+            log(`WebSocket connection closed (code: ${event.code}).`);
+            showPlaceholder("Server connection disconnected.");
+
+            // Clear all host data
+            hostsData.clear();
+            renderHostsGrid();
+            disableControlState();
+        };
+
+        socket.onerror = (error) => {
+            log('WebSocket connection error occurred.');
+            console.error('WS Error:', error);
+        };
+
+        socket.onmessage = (event) => {
+            // Handle text messages
+            if (typeof event.data === 'string') {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'host_list') {
+                        updateHostList(msg.hosts);
+                    } else if (msg.type === 'screen_info') {
+                        const hInfo = hostsData.get(msg.host_id);
+                        if (hInfo) {
+                            hInfo.width = msg.width;
+                            hInfo.height = msg.height;
+                            if (msg.host_id === activeHostId) {
+                                screenWidth = msg.width;
+                                screenHeight = msg.height;
+                            }
+                            log(`Screen info for [${msg.host_id}]: ${msg.width}x${msg.height}`);
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Unparseable text message:', event.data);
+                }
+                return;
+            }
+
+            if (paused) return;
+
+            // Binary JPEG frame header parsing
+            // Format: [1 byte ID length] [N bytes ID string] [M bytes JPEG bytes]
+            const buffer = event.data;
+            const view = new DataView(buffer);
+            const idLen = view.getUint8(0);
+
+            // Decode host ID
+            const idBytes = new Uint8Array(buffer, 1, idLen);
+            const hostId = new TextDecoder("utf-8").decode(idBytes);
+
+            // Extract JPEG data
+            const jpegBytes = new Uint8Array(buffer, 1 + idLen);
+            const blob = new Blob([jpegBytes], { type: 'image/jpeg' });
+
+            // Track statistics
+            totalFrames++;
+            totalBytes += blob.size;
+            framesThisSecond++;
+            bytesThisSecond += blob.size;
+
+            // Update live thumbnail preview canvas
+            updateThumbnailPreview(hostId, blob);
+
+            // Draw to main console canvas if it is the currently selected host
+            if (hostId === activeHostId) {
+                if (placeholder.style.display !== 'none') {
+                    placeholder.style.display = 'none';
+                    canvas.style.display = 'block';
+                }
+                drawMainScreen(blob);
+            }
+
+            // Compute performance metrics every 1 second
+            const now = performance.now();
+            const elapsed = now - lastTime;
+            if (elapsed >= 1000) {
+                const fps = (framesThisSecond / (elapsed / 1000)).toFixed(1);
+                const kbps = ((bytesThisSecond / 1024) / (elapsed / 1000)).toFixed(2);
+                const avgSize = ((bytesThisSecond / framesThisSecond) / 1024).toFixed(1);
+
+                statFps.textContent = `${fps} FPS`;
+                statBandwidth.textContent = `${kbps} KB/s`;
+                statSize.textContent = `${avgSize} KB`;
+                statCount.textContent = totalFrames;
+
+                framesThisSecond = 0;
+                bytesThisSecond = 0;
+                lastTime = now;
+            }
+        };
+
+        // Render thumbnails on sidebar preview canvases
+        function updateThumbnailPreview(hostId, blob) {
+            const previewCanvas = document.getElementById(`preview-canvas-${hostId}`);
+            if (!previewCanvas) return;
+
+            const previewCtx = previewCanvas.getContext('2d');
+            const img = new Image();
+            const url = URL.createObjectURL(blob);
+            img.onload = () => {
+                if (previewCanvas.width !== img.width || previewCanvas.height !== img.height) {
+                    previewCanvas.width = img.width;
+                    previewCanvas.height = img.height;
+                }
+                previewCtx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(url);
+            };
+            img.src = url;
+        }
+
+        // Draw active screen to main canvas
+        function drawMainScreen(blob) {
+            const img = new Image();
+            const url = URL.createObjectURL(blob);
+            img.onload = () => {
+                if (canvas.width !== img.width || canvas.height !== img.height) {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                }
+                ctx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(url);
+            };
+            img.src = url;
+        }
+
+        // Update list of online hosts
+        function updateHostList(hosts) {
+            let listChanged = false;
+
+            // Remove disconnected hosts from data tracking
+            for (const key of hostsData.keys()) {
+                if (!hosts.includes(key)) {
+                    hostsData.delete(key);
+                    listChanged = true;
+                    log(`Client disconnected: ${key}`);
+                    if (activeHostId === key) {
+                        activeHostId = null;
+                        disableControlState();
+                        showPlaceholder("Select a client from the left panel to begin monitoring.");
+                    }
+                }
+            }
+
+            // Add newly connected hosts
+            hosts.forEach(id => {
+                if (!hostsData.has(id)) {
+                    hostsData.set(id, { width: 1920, height: 1080 });
+                    listChanged = true;
+                    log(`Client connected: ${id}`);
+
+                    // Auto-select first client if nothing is selected
+                    if (!activeHostId) {
+                        setTimeout(() => selectHost(id), 100);
+                    }
+                }
+            });
+
+            if (listChanged) {
+                renderHostsGrid();
+            }
+        }
+
+        // Render host items inside the sidebar panel
+        function renderHostsGrid() {
+            // Clear all host cards, keeping the no-hosts text if map is empty
+            hostsGrid.innerHTML = '';
+
+            if (hostsData.size === 0) {
+                noHostsMessage.style.display = 'block';
+                hostsGrid.appendChild(noHostsMessage);
+                document.getElementById('hosts-count').textContent = '0';
+                return;
+            }
+
+            noHostsMessage.style.display = 'none';
+            document.getElementById('hosts-count').textContent = hostsData.size;
+
+            for (const [id] of hostsData.entries()) {
+                const card = document.createElement('div');
+                card.className = `host-card${id === activeHostId ? ' active' : ''}`;
+                card.id = `host-card-${id}`;
+                card.onclick = () => selectHost(id);
+
+                card.innerHTML = `
+                    <div class="host-card-header">
+                        <span class="host-card-title" title="${id}">${id}</span>
+                        <span class="host-card-status">${id === activeHostId ? 'Viewing' : 'Online'}</span>
+                    </div>
+                    <div class="host-card-preview">
+                        <canvas id="preview-canvas-${id}"></canvas>
+                    </div>
+                `;
+                hostsGrid.appendChild(card);
+            }
+        }
+
+        // Switch main monitor active stream
+        function selectHost(id) {
+            if (!hostsData.has(id)) return;
+
+            // Unset previous active visual state
+            if (activeHostId) {
+                const oldCard = document.getElementById(`host-card-${activeHostId}`);
+                if (oldCard) {
+                    oldCard.classList.remove('active');
+                    oldCard.querySelector('.host-card-status').textContent = 'Online';
+                }
+            }
+
+            activeHostId = id;
+            activeHostDisplay.textContent = id;
+
+            const newCard = document.getElementById(`host-card-${id}`);
+            if (newCard) {
+                newCard.classList.add('active');
+                newCard.querySelector('.host-card-status').textContent = 'Viewing';
+            }
+
+            // Sync current host screen bounds for mouse coordination
+            const hostInfo = hostsData.get(id);
+            screenWidth = hostInfo.width;
+            screenHeight = hostInfo.height;
+
+            log(`Switched viewport to monitor client: ${id}`);
+
+            // Clean viewport and wait for incoming binary frames to hide placeholder
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            showPlaceholder("Loading stream...");
+        }
+
+        // Show screen placeholder with description
+        function showPlaceholder(text) {
+            placeholder.style.display = 'flex';
+            placeholderText.textContent = text;
+            canvas.style.display = 'none';
+            activeHostDisplay.textContent = activeHostId || 'None Selected';
+        }
+
+        function disableControlState() {
+            controlling = false;
+            btnControl.classList.remove('active');
+            btnControl.querySelector('span').textContent = 'Remote Control';
+            controlIndicator.classList.remove('visible');
+            canvas.classList.remove('controlling');
+        }
+
+        // ─── Remote Control Toggle ───
+        btnControl.addEventListener('click', () => {
+            if (!activeHostId) {
+                log("Control rejected: No active client selected.");
+                return;
+            }
+            controlling = !controlling;
+            if (controlling) {
+                btnControl.classList.add('active');
+                btnControl.querySelector('span').textContent = 'Control ON';
+                controlIndicator.classList.add('visible');
+                canvas.classList.add('controlling');
+                log(`Remote control ENABLED on host [${activeHostId}]. Input events will be sent.`);
+            } else {
+                disableControlState();
+                log('Remote control DISABLED.');
+            }
+        });
+
+        // ─── Helper: send command JSON ───
+        function sendCommand(cmd) {
+            if (socket.readyState === WebSocket.OPEN && activeHostId) {
+                cmd.host_id = activeHostId; // Target this active host ID
+                socket.send(JSON.stringify(cmd));
+            }
+        }
+
+        // ─── Mouse Move (throttled to ~30/sec) ───
+        let lastMoveTime = 0;
+        canvas.addEventListener('mousemove', (e) => {
+            if (!controlling || !activeHostId) return;
+            const now = performance.now();
+            if (now - lastMoveTime < 33) return; // ~30 events/sec
+            lastMoveTime = now;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.round((e.clientX - rect.left) * (screenWidth / rect.width));
+            const y = Math.round((e.clientY - rect.top) * (screenHeight / rect.height));
+            sendCommand({ type: 'mouse_move', x, y });
+        });
+
+        // ─── Mouse Click ───
+        canvas.addEventListener('mousedown', (e) => {
+            if (!controlling || !activeHostId) return;
+            e.preventDefault();
+            const button = e.button === 2 ? 'right' : e.button === 1 ? 'center' : 'left';
+            sendCommand({ type: 'mouse_click', button });
+        });
+
+        // Prevent context menu on right-click when controlling
+        canvas.addEventListener('contextmenu', (e) => {
+            if (controlling) e.preventDefault();
+        });
+
+        // ─── Mouse Scroll ───
+        canvas.addEventListener('wheel', (e) => {
+            if (!controlling || !activeHostId) return;
+            e.preventDefault();
+            // Normalize scroll: positive = scroll down, negative = scroll up
+            const direction = e.deltaY > 0 ? 'down' : 'up';
+            const amount = Math.min(Math.abs(Math.round(e.deltaY / 30)), 10) || 1;
+            sendCommand({ type: 'mouse_scroll', direction, amount });
+        }, { passive: false });
+
+        // ─── Keyboard ───
+        window.addEventListener('keydown', (e) => {
+            if (!controlling || !activeHostId) return;
+            e.preventDefault();
+            sendCommand({ type: 'key_press', key: e.key });
+        });
+
+        // ─── Pause / Resume Control ───
+        btnPause.addEventListener('click', () => {
+            paused = !paused;
+            if (paused) {
+                btnPause.querySelector('span').textContent = 'Resume';
+                btnPause.classList.add('btn-primary');
+                log('Viewer paused (incoming stream suspended locally).');
+            } else {
+                btnPause.querySelector('span').textContent = 'Pause';
+                btnPause.classList.remove('btn-primary');
+                log('Viewer resumed.');
+                lastTime = performance.now();
+                framesThisSecond = 0;
+                bytesThisSecond = 0;
+            }
+        });
+
+        // ─── Fullscreen Mode ───
+        btnFullscreen.addEventListener('click', () => {
+            const container = document.getElementById('screen-container');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().then(() => {
+                    log('Entered fullscreen mode.');
+                }).catch(err => {
+                    log(`Failed to enter fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+                log('Exited fullscreen mode.');
+            }
+        });
+
+        // ─── Download Current Screenshot ───
+        btnScreenshot.addEventListener('click', () => {
+            if (canvas.style.display === 'none' || canvas.width === 0) {
+                log('Cannot download: No screenshot frame available yet.');
+                return;
+            }
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL('image/jpeg', 0.95);
+            a.download = `sentinel_capture_${new Date().toISOString().replace(/[:.]/g, '-')}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            log(`Downloaded screenshot frame for [${activeHostId}].`);
+        });
+    </script>
+</body>
+
+</html>
