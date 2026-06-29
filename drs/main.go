@@ -244,7 +244,11 @@ func setupRoutes() {
 }
 
 func main() {
-	fmt.Println("Go WebSocket Screen Sharing Server running on :8080")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	fmt.Printf("Go WebSocket Screen Sharing Server running on :%s\n", port)
 	setupRoutes()
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

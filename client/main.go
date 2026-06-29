@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"image/jpeg"
 	"log"
@@ -125,6 +126,10 @@ func handleCommand(data []byte) {
 }
 
 func main() {
+	serverAddr := flag.String("server", "192.168.1.13:8080", "Server address (e.g. localhost:8080 or your-app.onrender.com)")
+	useSSL := flag.Bool("ssl", false, "Use secure WebSocket connection (wss)")
+	flag.Parse()
+
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
@@ -135,9 +140,14 @@ func main() {
 	clientID := fmt.Sprintf("%s_%d", hostname, os.Getpid())
 	log.Printf("Starting host client agent with ID: %s", clientID)
 
+	scheme := "ws"
+	if *useSSL {
+		scheme = "wss"
+	}
+
 	u := url.URL{
-		Scheme:   "ws",
-		Host:     "192.168.1.13:8080",
+		Scheme:   scheme,
+		Host:     *serverAddr,
 		Path:     "/ws",
 		RawQuery: fmt.Sprintf("role=host&id=%s", url.QueryEscape(clientID)),
 	}
@@ -145,7 +155,7 @@ func main() {
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		log.Fatal("Connection failed. Ensure the server is running on :8080. Error:", err)
+		log.Fatalf("Connection failed to %s. Error: %v", u.String(), err)
 	}
 	defer conn.Close()
 	log.Printf("Connection established successfully for ID: %s! Starting stream...", clientID)

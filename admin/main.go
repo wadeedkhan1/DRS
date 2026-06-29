@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -22,7 +23,10 @@ func openBrowser(url string) error {
 }
 
 func main() {
-	url := "http://localhost:8080/admin"
+	urlFlag := flag.String("url", "http://localhost:8080/admin", "DRS Server Admin Page URL (e.g. https://your-app.onrender.com/admin)")
+	flag.Parse()
+
+	url := *urlFlag
 	fmt.Println("==================================================")
 	fmt.Println("      DRS SCREEN MONITORING LAUNCHER         ")
 	fmt.Println("==================================================")
